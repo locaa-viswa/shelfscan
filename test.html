@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>ShelfScan — Model Smoke Test</title>
+<style>
+  *{box-sizing:border-box;margin:0;}
+  html,body{height:100%;background:#000;font-family:Arial,sans-serif;overflow:hidden;}
+  video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;}
+  canvas{position:fixed;inset:0;width:100%;height:100%;}
+  #log{position:fixed;top:0;left:0;right:0;padding:10px 12px;color:#9FE1CB;
+    background:rgba(0,0,0,.66);font-size:13px;line-height:1.55;z-index:5;font-family:monospace;}
+  #log b{color:#fff;}
+  #log .err{color:#FF8B8E;}
+  #log .ok{color:#5DCAA5;}
+</style>
+</head>
+<body>
+  <video id="v" playsinline muted autoplay></video>
+  <canvas id="c"></canvas>
+  <div id="log">starting…</div>
+
+<script type="module">
+import { pipeline, RawImage, env }
+  from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
+
+// Change this to try a different model:
+const MODEL_ID = 'Xenova/yolos-tiny';      // alt: 'Xenova/detr-resnet-50'
+
+const v = document.getElementById('v');
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+const logEl = document.getElementById('log');
+const lines = {};
+function set(k, html){ lines[k]=html; render(); }
+function render(){ logEl.innerHTML = Object.values(lines).join('<br>'); }
+
+const work = Object.assign(document.createElement('canvas'), { width:384, height:288 });
+const wctx = work.getContext('2d', { willReadFrequently:true });
+
+let detector=null, backend='';
+
+(async function(){
+  // 1) camera
+  try{
+    set('cam','<b>camera:</b> requesting…');
+    const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ideal:'environment'} }, audio:false });
+    v.srcObject = stream; await v.play();
+    c.width=c.clientWidth; c.height=c.clientHeight;
+    set('cam','<span class="ok"><b>camera:</b> OK</span>');
+  }catch(e){ return set('cam','<span class="err"><b>camera FAILED:</b> '+e.message+'</span>'); }
+
+  // 2) model
+  for(const dev of ['webgpu','wasm']){
+    try{
+      set('model','<b>model:</b> loading on '+dev+'…');
+      detector = await pipeline('object-detection', MODEL_ID, {
+        device: dev, dtype: dev==='webgpu'?'fp16':'q8',
+        progress_callback: p=>{ if(p.status==='progress'&&p.file) set('model','<b>model:</b> '+dev+' '+Math.round(p.progress||0)+'%'); }
+      });
+      backend=dev; break;
+    }catch(e){ set('model','<span class="err"><b>'+dev+' load failed:</b> '+e.message+'</span>'); }
+  }
+  if(!detector) return;
+  set('model','<span class="ok"><b>model:</b> loaded · backend = '+backend.toUpperCase()+'</span>');
+
+  loop();
+})();
+
+async function loop(){
+  if(detector){
+    try{
+      wctx.drawImage(v,0,0,384,288);
+      // most-compatible input path: data URL
+      let img;
+      try{ img = await RawImage.fromCanvas(work); }
+      catch{ img = await RawImage.read(work.toDataURL('image/jpeg',0.85)); }
+
+      const t0=performance.now();
+      const out = await detector(img, { threshold:0.20 });
+      const ms=Math.round(performance.now()-t0);
+
+      set('time','<b>inference:</b> '+ms+' ms');
+      set('count', (out.length? '<span class="ok">' : '<span class="err">') +
+        '<b>raw detections:</b> '+out.length+'</span>');
+      const top = out.slice().sort((a,b)=>b.score-a.score)[0];
+      set('top','<b>top:</b> '+(top? top.label+' '+top.score.toFixed(2):'—'));
+      set('err','');
+
+      // draw all boxes
+      const sx=c.width/384, sy=c.height/288;
+      ctx.clearRect(0,0,c.width,c.height);
+      ctx.lineWidth=2; ctx.strokeStyle='#5DCAA5'; ctx.fillStyle='#5DCAA5'; ctx.font='13px monospace';
+      for(const d of out){
+        const b=d.box;
+        ctx.strokeRect(b.xmin*sx, b.ymin*sy, (b.xmax-b.xmin)*sx, (b.ymax-b.ymin)*sy);
+        ctx.fillText(d.label+' '+d.score.toFixed(2), b.xmin*sx+2, b.ymin*sy+13);
+      }
+    }catch(e){ set('err','<span class="err"><b>inference error:</b> '+e.message+'</span>'); }
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
