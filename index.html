@@ -4,17 +4,18 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>ShelfScan — StoreSight Edge</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <style>
-  :root{
-    --navy:#061632; --navy2:#0B1F3F; --teal:#028090; --mint:#5DCAA5;
-    --mint-pale:#9FE1CB; --ink:#EAF7F2; --warn:#F2B705; --crit:#E5484D;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  :root{ --navy:#061632; --navy2:#0B1F3F; --teal:#028090; --mint:#5DCAA5;
+    --mint-pale:#9FE1CB; --ink:#EAF7F2; --warn:#F2B705; --crit:#E5484D; }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;background:var(--navy);color:var(--ink);
     font-family:Arial,Helvetica,sans-serif;overflow:hidden;}
   #stage{position:fixed;inset:0;background:#000;}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
-  canvas#overlay{position:absolute;inset:0;width:100%;height:100%;}
+  canvas{position:absolute;inset:0;width:100%;height:100%;}
+  canvas#result{display:none;}
   .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
     align-items:flex-start;padding:14px 16px;pointer-events:none;
     background:linear-gradient(180deg,rgba(6,22,50,.78),rgba(6,22,50,0));}
@@ -24,34 +25,30 @@
   .chip .v{font-size:22px;font-weight:bold;}
   .band{font-size:11px;font-weight:bold;letter-spacing:.06em;margin-top:2px;}
   #dbg{position:absolute;top:74px;left:0;right:0;text-align:center;font-family:monospace;
-    font-size:11px;color:var(--mint-pale);text-shadow:0 1px 3px #000;pointer-events:none;}
-  #dbg .bad{color:#FF8B8E;}
-  #zoneCaption{position:absolute;left:0;right:0;text-align:center;font-size:12px;
-    letter-spacing:.04em;color:var(--mint-pale);pointer-events:none;text-shadow:0 1px 3px #000;}
-  #toast{position:absolute;top:46%;left:50%;translate:-50% -50%;
-    background:rgba(229,72,77,.92);color:#fff;font-weight:bold;font-size:15px;
-    padding:12px 18px;border-radius:14px;opacity:0;transition:opacity .18s;pointer-events:none;
-    box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center;max-width:80%;}
-  #toast.show{opacity:1;} #toast.warnTone{background:rgba(242,183,5,.95);color:#1a1400;}
+    font-size:11px;color:var(--mint-pale);text-shadow:0 1px 3px #000;pointer-events:none;opacity:.85;}
+  #caption{position:absolute;left:0;right:0;text-align:center;font-size:13px;
+    letter-spacing:.03em;color:var(--mint-pale);pointer-events:none;text-shadow:0 1px 3px #000;}
+  #toast{position:absolute;top:44%;left:50%;translate:-50% -50%;background:rgba(242,183,5,.95);color:#1a1400;
+    font-weight:bold;font-size:14px;padding:11px 16px;border-radius:13px;opacity:0;transition:opacity .18s;
+    pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center;max-width:80%;}
+  #toast.show{opacity:1;}
   .bar{position:absolute;left:0;right:0;bottom:0;padding:12px 14px 18px;
-    background:linear-gradient(0deg,rgba(6,22,50,.92),rgba(6,22,50,0));}
+    background:linear-gradient(0deg,rgba(6,22,50,.94),rgba(6,22,50,0));}
   .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
   .stepper{display:flex;align-items:center;background:rgba(11,31,63,.7);border:1px solid rgba(159,225,203,.25);
     border-radius:12px;overflow:hidden;flex:1;}
-  .stepper label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mint-pale);
-    padding:0 8px;opacity:.85;flex:1;}
+  .stepper label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mint-pale);padding:0 8px;opacity:.85;flex:1;}
   .stepper button{width:38px;height:38px;background:transparent;border:none;color:var(--ink);font-size:20px;font-weight:bold;}
   .stepper .val{min-width:30px;text-align:center;font-size:17px;font-weight:bold;}
-  .btn{border:none;border-radius:13px;font-size:15px;font-weight:bold;padding:14px;color:#fff;}
+  .btn{border:none;border-radius:13px;font-size:16px;font-weight:bold;padding:15px;color:#fff;}
+  .btn.scan{background:var(--mint);color:#04221a;width:100%;font-size:18px;}
   .btn.primary{background:var(--teal);flex:2;} .btn.ghost{background:rgba(11,31,63,.8);border:1px solid rgba(159,225,203,.3);color:var(--ink);flex:1;}
-  .btn:active{transform:scale(.98);} .btn:disabled{opacity:.45;}
+  .btn:active{transform:scale(.98);} .btn:disabled{opacity:.5;}
   .sheet{position:absolute;inset:0;background:rgba(6,22,50,.93);display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;padding:28px;z-index:20;}
   .sheet h1{font-size:20px;margin:0 0 6px;color:#fff;} .sheet p{font-size:13px;color:var(--mint-pale);max-width:300px;line-height:1.5;}
-  .spinner{width:38px;height:38px;border:3px solid rgba(159,225,203,.25);border-top-color:var(--mint);
-    border-radius:50%;animation:spin 1s linear infinite;margin-bottom:18px;} @keyframes spin{to{transform:rotate(360deg);}}
   pre.payload{text-align:left;background:#04101f;border:1px solid rgba(159,225,203,.2);border-radius:12px;
-    padding:14px;font-size:11px;color:var(--mint);max-width:340px;width:100%;overflow:auto;max-height:48vh;}
+    padding:14px;font-size:11px;color:var(--mint);max-width:340px;width:100%;overflow:auto;max-height:46vh;}
   .badge{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mint-pale);
     border:1px solid rgba(159,225,203,.3);border-radius:20px;padding:5px 12px;margin-bottom:14px;}
   .hidden{display:none!important;} .small{font-size:11px;color:var(--mint-pale);opacity:.8;margin-top:14px;}
@@ -61,15 +58,16 @@
 <div id="stage">
   <video id="video" playsinline muted autoplay></video>
   <canvas id="overlay"></canvas>
-  <div id="dbg">booting…</div>
-  <div id="zoneCaption">Fill the box with one shelf section</div>
+  <canvas id="result"></canvas>
+  <div id="dbg">loading…</div>
+  <div id="caption">Aim at one shelf section, then tap Scan</div>
 
   <div class="hud">
-    <div class="chip"><div class="k">Items</div><div class="v" id="itemCount">0</div></div>
-    <div class="chip void">
+    <div class="chip"><div class="k">Items</div><div class="v" id="itemCount">—</div></div>
+    <div class="chip">
       <div class="k">Void space</div>
-      <div class="v" id="voidVal" style="color:var(--mint)">—</div>
-      <div class="band" id="bandVal" style="color:var(--mint-pale)">READY</div>
+      <div class="v" id="voidVal" style="color:var(--mint-pale)">—</div>
+      <div class="band" id="bandVal" style="color:var(--mint-pale)">IDLE</div>
     </div>
   </div>
 
@@ -82,20 +80,15 @@
       <div class="stepper"><label>Shelf</label>
         <button data-step="shelf" data-d="-1">−</button><div class="val" id="shelfVal">2</div><button data-step="shelf" data-d="1">+</button></div>
     </div>
-    <div class="row">
-      <button class="btn ghost" id="torchBtn">Flashlight</button>
-      <button class="btn ghost" id="baseBtn">Set full = baseline</button>
+    <div class="row" id="previewRow">
+      <button class="btn scan" id="scanBtn" disabled>Loading model…</button>
     </div>
-    <div class="row"><button class="btn primary" id="submitBtn" disabled>Submit scan</button></div>
+    <div class="row hidden" id="resultRow">
+      <button class="btn ghost" id="againBtn">Scan again</button>
+      <button class="btn primary" id="submitBtn">Submit scan</button>
+    </div>
   </div>
 
-  <div class="sheet" id="loadSheet">
-    <div class="badge">StoreSight · Edge AI</div>
-    <div class="spinner"></div>
-    <h1>Starting scanner</h1>
-    <p id="loadMsg">Requesting camera…</p>
-    <div class="small" id="backendMsg"></div>
-  </div>
   <div class="sheet hidden" id="errSheet">
     <div class="badge" style="border-color:var(--crit);color:#ffb4b6">Can't start</div>
     <h1 id="errTitle">Something went wrong</h1>
@@ -104,225 +97,185 @@
   <div class="sheet hidden" id="doneSheet">
     <div class="badge">Scan queued</div>
     <h1>Sent to StoreSight</h1>
-    <p>This payload is what the dashboard reads — no image leaves the device, just a geo-stamped, queryable record.</p>
+    <p>This is the payload the dashboard reads — geo-stamped, queryable, no image leaves the device.</p>
     <pre class="payload" id="payloadOut"></pre>
     <button class="btn primary" id="nextBtn" style="margin-top:16px;max-width:260px;width:100%">Scan next shelf</button>
   </div>
 </div>
 
-<script type="module">
-import { pipeline, RawImage, env }
-  from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
-
+<script>
 const CONFIG = {
-  MODEL_ID:'Xenova/yolos-tiny',   // COCO demo model. Aim at bottles/cups/cans.
-  CONF:0.25,
-  INFER_W:384, INFER_H:288,
   ZONE:{ x:0.10, y:0.34, w:0.80, h:0.30 },
   GRID_COLS:32, GRID_ROWS:12, CELL_FILL:0.30,
-  MEDIAN_WINDOW:18, REDLINE_VOID:30,
-  LUM_MIN:42, BLUR_MIN:90, MOTION_MAX:26,
-  STORE_ID:'ST-001', AUDITOR_ID:'aud_017', APP_VERSION:'0.2.0',
+  MIN_SCORE:0.35, MAX_BOXES:20, CAPTURE_LONG:640,
+  REDLINE_VOID:30, LUM_MIN:42, BLUR_MIN:80,
+  STORE_ID:'ST-001', AUDITOR_ID:'aud_017', APP_VERSION:'0.3.0',
 };
-
 const $=id=>document.getElementById(id);
 const video=$('video'), overlay=$('overlay'), octx=overlay.getContext('2d');
-const inferCanvas=Object.assign(document.createElement('canvas'),{width:CONFIG.INFER_W,height:CONFIG.INFER_H});
-const ictx=inferCanvas.getContext('2d',{willReadFrequently:true});
-const QW=64,QH=48;
-const qCanvas=Object.assign(document.createElement('canvas'),{width:QW,height:QH});
-const qctx=qCanvas.getContext('2d',{willReadFrequently:true});
+const result=$('result'), rctx=result.getContext('2d');
+const cap=document.createElement('canvas'), cctx=cap.getContext('2d',{willReadFrequently:true});
 
-let detector=null, backend='', videoReady=false, running=false;
-let latest=[], rawCount=0, lastMs=0, lastErr='';
-let voidBuf=[], lastVoid=null, lastCount=0, lastQuality=1, baseline=null, prevGray=null;
-let aisle=4, shelf=2;
+let model=null, mode='preview', aisle=4, shelf=2;
+let lastVoid=null, lastCount=0, lastQuality=1, lastMs=0, backend='';
 const track=()=>(video.srcObject&&video.srcObject.getVideoTracks()[0])||null;
-
-function dbg(){
-  const e=$('dbg');
-  e.innerHTML = `${backend||'…'} · ${lastMs}ms · raw ${rawCount} · zone ${lastCount}` +
-    (lastErr?` · <span class="bad">${lastErr}</span>`:'');
-}
+function dbg(extra){ $('dbg').textContent = `tf:${backend||'…'}${lastMs?` · ${lastMs}ms`:''}${extra?` · ${extra}`:''}`; }
 
 async function start(){
   try{
     const stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
-    video.srcObject=stream; await video.play(); videoReady=true; sizeOverlay();
+    video.srcObject=stream; await video.play(); sizeCanvases();
   }catch(e){ return fail('Camera blocked','Allow camera access and reload. Needs the rear camera over HTTPS.'); }
 
-  $('loadMsg').textContent='Loading the detection model…';
-  try{ await loadModel(); }
-  catch(e){ return fail('Model failed to load', String(e.message||e)); }
-
-  $('backendMsg').textContent='Running on '+backend;
-  $('loadSheet').classList.add('hidden');
-  $('submitBtn').disabled=false; running=true;
-  setupTorch(); requestAnimationFrame(renderLoop); inferLoop();
+  requestAnimationFrame(previewLoop);
+  try{
+    await tf.ready(); backend=tf.getBackend(); dbg('model loading');
+    model=await cocoSsd.load({base:'lite_mobilenet_v2'});  // fastest variant
+    $('scanBtn').disabled=false; $('scanBtn').textContent='Scan'; dbg('ready');
+  }catch(e){ return fail('Model failed to load', String(e.message||e)); }
 }
 
-async function loadModel(){
-  env.allowLocalModels=false;
-  // Force WASM: yolos-tiny is unreliable on WebGPU. Try quantized, then full.
-  const attempts=[{device:'wasm',dtype:'q8'},{device:'wasm',dtype:'fp32'}];
-  let err;
-  for(const a of attempts){
-    try{
-      detector=await pipeline('object-detection',CONFIG.MODEL_ID,{...a,
-        progress_callback:p=>{ if(p.status==='progress'&&p.file)
-          $('loadMsg').textContent=`Loading model… ${Math.round(p.progress||0)}%`; }});
-      backend=`${a.device}/${a.dtype}`; return;
-    }catch(e){ err=e; console.warn('load failed',a,e); }
+function sizeCanvases(){ for(const c of [overlay,result]){ c.width=c.clientWidth; c.height=c.clientHeight; } }
+addEventListener('resize', sizeCanvases);
+
+/* live preview: only draws the target zone (no inference) */
+function previewLoop(){
+  if(mode==='preview'){
+    const W=overlay.width,H=overlay.height,z=CONFIG.ZONE;
+    octx.clearRect(0,0,W,H);
+    octx.fillStyle='rgba(6,22,50,.30)'; octx.fillRect(0,0,W,H);
+    octx.clearRect(z.x*W,z.y*H,z.w*W,z.h*H);
+    octx.strokeStyle='rgba(159,225,203,.9)'; octx.lineWidth=2; octx.strokeRect(z.x*W,z.y*H,z.w*W,z.h*H);
+    $('caption').style.top=(z.y*H-26)+'px';
   }
-  throw err;
+  requestAnimationFrame(previewLoop);
 }
 
-// build the model input from the *same* cover-cropped region the user sees
-function drawCoverToInfer(){
+/* cover-crop the live video into the capture canvas (matches what the user sees) */
+function grabFrame(){
   const vw=video.videoWidth, vh=video.videoHeight;
-  if(!vw||!vh) return false;
-  const dispA=overlay.width/overlay.height, vidA=vw/vh;
-  let sx,sy,sw,sh;
-  if(vidA>dispA){ sh=vh; sw=vh*dispA; sx=(vw-sw)/2; sy=0; }
-  else { sw=vw; sh=vw/dispA; sx=0; sy=(vh-sh)/2; }
-  ictx.drawImage(video, sx,sy,sw,sh, 0,0, CONFIG.INFER_W, CONFIG.INFER_H);
-  return true;
-}
-async function frameToImage(){
-  try{ return await RawImage.fromCanvas(inferCanvas); }catch(_){}
-  const id=ictx.getImageData(0,0,CONFIG.INFER_W,CONFIG.INFER_H);
-  let img=new RawImage(id.data,CONFIG.INFER_W,CONFIG.INFER_H,4);
-  try{ img=img.rgb(); }catch(_){}
-  return img;
+  let cw=overlay.width, ch=overlay.height;
+  const s=CONFIG.CAPTURE_LONG/Math.max(cw,ch); if(s<1){ cw=Math.round(cw*s); ch=Math.round(ch*s); }
+  cap.width=cw; cap.height=ch;
+  const dispA=cw/ch, vidA=vw/vh; let sx,sy,sw,sh;
+  if(vidA>dispA){ sh=vh; sw=vh*dispA; sx=(vw-sw)/2; sy=0; } else { sw=vw; sh=vw/dispA; sx=0; sy=(vh-sh)/2; }
+  cctx.drawImage(video, sx,sy,sw,sh, 0,0, cw,ch);
 }
 
-async function inferLoop(){
-  if(running&&videoReady&&detector){
-    try{
-      if(drawCoverToInfer()){
-        const img=await frameToImage();
-        const t0=performance.now();
-        const out=await detector(img,{threshold:CONFIG.CONF});
-        lastMs=Math.round(performance.now()-t0);
-        rawCount=out.length; lastErr='';
-        latest=out.map(d=>({x0:d.box.xmin/CONFIG.INFER_W,y0:d.box.ymin/CONFIG.INFER_H,
-          x1:d.box.xmax/CONFIG.INFER_W,y1:d.box.ymax/CONFIG.INFER_H,s:d.score}));
-        runQuality(); computeMetrics();
-      }
-    }catch(err){ lastErr=String(err.message||err).slice(0,60); console.warn(err); }
-    dbg();
-  }
-  requestAnimationFrame(inferLoop);
-}
-
-const inZone=d=>{ const cx=(d.x0+d.x1)/2,cy=(d.y0+d.y1)/2,z=CONFIG.ZONE;
+const inZone=d=>{ const cx=d.x0+(d.x1-d.x0)/2, cy=d.y0+(d.y1-d.y0)/2, z=CONFIG.ZONE;
   return cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h; };
-function occFraction(){
-  const z=CONFIG.ZONE,C=CONFIG.GRID_COLS,R=CONFIG.GRID_ROWS,kept=latest.filter(inZone);
+
+function occFraction(dets){
+  const z=CONFIG.ZONE,C=CONFIG.GRID_COLS,R=CONFIG.GRID_ROWS,kept=dets.filter(inZone);
   const cellW=z.w/C,cellH=z.h/R,cellA=cellW*cellH; let occ=0;
   for(let r=0;r<R;r++)for(let c=0;c<C;c++){
     const cx0=z.x+c*cellW,cy0=z.y+r*cellH,cx1=cx0+cellW,cy1=cy0+cellH; let cover=0;
     for(const d of kept){ const ix=Math.max(0,Math.min(cx1,d.x1)-Math.max(cx0,d.x0));
       const iy=Math.max(0,Math.min(cy1,d.y1)-Math.max(cy0,d.y0)); cover+=ix*iy;
       if(cover/cellA>=CONFIG.CELL_FILL){occ++;break;} } }
-  return {frac:occ/(C*R),kept:kept.length};
+  return {frac:occ/(C*R), kept};
 }
-function computeMetrics(){
-  const {frac,kept}=occFraction();
-  let v=baseline?Math.max(0,(1-frac/Math.max(baseline,1e-3)))*100:(1-frac)*100;
-  v=Math.max(0,Math.min(100,v));
-  voidBuf.push(v); if(voidBuf.length>CONFIG.MEDIAN_WINDOW) voidBuf.shift();
-  lastVoid=median(voidBuf); lastCount=kept; paintHUD();
+
+function quality(){
+  const QW=64,QH=48,q=document.createElement('canvas'); q.width=QW;q.height=QH;
+  const qx=q.getContext('2d',{willReadFrequently:true}); qx.drawImage(cap,0,0,QW,QH);
+  const px=qx.getImageData(0,0,QW,QH).data, g=new Float32Array(QW*QH); let sum=0;
+  for(let i=0,j=0;i<px.length;i+=4,j++){const v=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];g[j]=v;sum+=v;}
+  const lum=sum/(QW*QH);
+  let ls=0,lq=0,n=0;
+  for(let y=1;y<QH-1;y++)for(let x=1;x<QW-1;x++){const i=y*QW+x;
+    const lap=4*g[i]-g[i-1]-g[i+1]-g[i-QW]-g[i+QW];ls+=lap;lq+=lap*lap;n++;}
+  const blur=(lq/n)-(ls/n)**2;
+  let qs=1,warn=null;
+  if(lum<CONFIG.LUM_MIN){qs-=0.5;warn='A bit dark — turn on the flashlight for a better read';}
+  else if(blur<CONFIG.BLUR_MIN){qs-=0.3;warn='Slightly blurry — hold steady and rescan';}
+  return {qs:Math.max(0,qs),warn};
 }
-const median=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;
-  return s.length?(s.length%2?s[m]:(s[m-1]+s[m])/2):0;};
+
+async function scan(){
+  if(!model) return;
+  $('scanBtn').disabled=true; $('scanBtn').textContent='Analyzing…';
+  await new Promise(r=>setTimeout(r,30));
+  grabFrame();
+  const {qs,warn}=quality(); lastQuality=qs;
+
+  const t0=performance.now();
+  const preds=await model.detect(cap, CONFIG.MAX_BOXES, CONFIG.MIN_SCORE);
+  lastMs=Math.round(performance.now()-t0);
+
+  const dets=preds.map(p=>({ x0:p.bbox[0]/cap.width, y0:p.bbox[1]/cap.height,
+    x1:(p.bbox[0]+p.bbox[2])/cap.width, y1:(p.bbox[1]+p.bbox[3])/cap.height, s:p.score }));
+  const {frac,kept}=occFraction(dets);
+  lastCount=kept.length;
+  lastVoid=Math.max(0,Math.min(100,(1-frac)*100));
+
+  showResult(kept); paintHUD(); dbg(`found ${preds.length}`);
+  if(warn) showToast(warn);
+  mode='result';
+  $('previewRow').classList.add('hidden'); $('resultRow').classList.remove('hidden');
+  $('caption').textContent='';
+  $('scanBtn').disabled=false; $('scanBtn').textContent='Scan';
+}
+
+function showResult(kept){
+  result.width=overlay.width; result.height=overlay.height;
+  const W=result.width,H=result.height,z=CONFIG.ZONE;
+  rctx.drawImage(cap,0,0,W,H);
+  rctx.fillStyle='rgba(6,22,50,.32)'; rctx.fillRect(0,0,W,H);
+  rctx.clearRect(z.x*W,z.y*H,z.w*W,z.h*H);
+  rctx.drawImage(cap, z.x*cap.width,z.y*cap.height,z.w*cap.width,z.h*cap.height, z.x*W,z.y*H,z.w*W,z.h*H);
+  rctx.strokeStyle='rgba(159,225,203,.9)'; rctx.lineWidth=2; rctx.strokeRect(z.x*W,z.y*H,z.w*W,z.h*H);
+  rctx.strokeStyle='rgba(93,202,165,.95)'; rctx.lineWidth=2;
+  for(const d of kept) rctx.strokeRect(d.x0*W,d.y0*H,(d.x1-d.x0)*W,(d.y1-d.y0)*H);
+  overlay.style.display='none'; result.style.display='block';
+}
+
 function paintHUD(){
   $('itemCount').textContent=lastCount;
-  if(lastVoid==null)return; const v=Math.round(lastVoid);
-  $('voidVal').textContent=v+'%'; let band,col;
-  if(v>=60){band='CRITICAL';col='var(--crit)';}
-  else if(v>=CONFIG.REDLINE_VOID){band='LOW';col='var(--warn)';}
-  else{band='FULL';col='var(--mint)';}
-  $('voidVal').style.color=col; $('bandVal').textContent=baseline?band+' · vs full':band; $('bandVal').style.color=col;
+  const v=Math.round(lastVoid); $('voidVal').textContent=v+'%';
+  let band,col; if(v>=60){band='CRITICAL';col='var(--crit)';}
+  else if(v>=CONFIG.REDLINE_VOID){band='LOW';col='var(--warn)';} else{band='FULL';col='var(--mint)';}
+  $('voidVal').style.color=col; $('bandVal').textContent=band; $('bandVal').style.color=col;
 }
 
-function runQuality(){
-  qctx.drawImage(inferCanvas,0,0,QW,QH);
-  const px=qctx.getImageData(0,0,QW,QH).data, gray=new Float32Array(QW*QH); let sum=0;
-  for(let i=0,j=0;i<px.length;i+=4,j++){const g=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];gray[j]=g;sum+=g;}
-  const lum=sum/(QW*QH);
-  let lsum=0,lsq=0,n=0;
-  for(let y=1;y<QH-1;y++)for(let x=1;x<QW-1;x++){const i=y*QW+x;
-    const lap=4*gray[i]-gray[i-1]-gray[i+1]-gray[i-QW]-gray[i+QW];lsum+=lap;lsq+=lap*lap;n++;}
-  const blurVar=(lsq/n)-(lsum/n)**2;
-  let motion=0; if(prevGray){let m=0;for(let k=0;k<gray.length;k++)m+=Math.abs(gray[k]-prevGray[k]);motion=m/gray.length;}
-  prevGray=gray;
-  let q=1,alert=null,warn=false;
-  if(lum<CONFIG.LUM_MIN){alert='Too dark — turn on the flashlight';q-=0.5;}
-  else if(motion>CONFIG.MOTION_MAX){alert='Hold steady — slow down';warn=true;q-=0.35;}
-  else if(blurVar<CONFIG.BLUR_MIN){alert='Hold steady — let it focus';warn=true;q-=0.3;}
-  lastQuality=Math.max(0,q); showToast(alert,warn);
+function backToPreview(){
+  mode='preview'; result.style.display='none'; overlay.style.display='block';
+  $('resultRow').classList.add('hidden'); $('previewRow').classList.remove('hidden');
+  $('caption').textContent='Aim at one shelf section, then tap Scan';
+  $('itemCount').textContent='—'; $('voidVal').textContent='—'; $('voidVal').style.color='var(--mint-pale)';
+  $('bandVal').textContent='IDLE'; $('bandVal').style.color='var(--mint-pale)';
 }
+
 let toastTimer=null;
-function showToast(msg,warn){const t=$('toast');
-  if(!msg){t.classList.remove('show');return;}
-  t.textContent=msg;t.classList.toggle('warnTone',!!warn);t.classList.add('show');
-  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),900);}
+function showToast(msg){const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 
-function sizeOverlay(){overlay.width=overlay.clientWidth;overlay.height=overlay.clientHeight;}
-addEventListener('resize',sizeOverlay);
-function renderLoop(){
-  const W=overlay.width,H=overlay.height,z=CONFIG.ZONE;
-  octx.clearRect(0,0,W,H);
-  octx.fillStyle='rgba(6,22,50,.30)';octx.fillRect(0,0,W,H);
-  octx.clearRect(z.x*W,z.y*H,z.w*W,z.h*H);
-  octx.strokeStyle='rgba(159,225,203,.9)';octx.lineWidth=2;octx.strokeRect(z.x*W,z.y*H,z.w*W,z.h*H);
-  octx.lineWidth=2;octx.strokeStyle='rgba(93,202,165,.95)';
-  for(const d of latest){ if(!inZone(d))continue;
-    octx.strokeRect(d.x0*W,d.y0*H,(d.x1-d.x0)*W,(d.y1-d.y0)*H); }
-  $('zoneCaption').style.top=(z.y*H-22)+'px';
-  requestAnimationFrame(renderLoop);
-}
-
-function setupTorch(){const t=track();const caps=t&&t.getCapabilities?t.getCapabilities():{};
-  if(!caps||!('torch' in caps)){$('torchBtn').disabled=true;$('torchBtn').textContent='No flashlight';}}
-let torchOn=false;
-$('torchBtn').onclick=async()=>{const t=track();if(!t)return;
-  try{torchOn=!torchOn;await t.applyConstraints({advanced:[{torch:torchOn}]});
-    $('torchBtn').textContent=torchOn?'Flashlight on':'Flashlight';}
-  catch(e){$('torchBtn').disabled=true;$('torchBtn').textContent='No flashlight';}};
-
-$('baseBtn').onclick=()=>{const {frac}=occFraction();
-  baseline=Math.max(0.05,frac);voidBuf=[];$('baseBtn').textContent='Baseline set ✓';
-  setTimeout(()=>$('baseBtn').textContent='Reset baseline',1200);};
+$('scanBtn').onclick=scan;
+$('againBtn').onclick=backToPreview;
 document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{const d=+b.dataset.d;
   if(b.dataset.step==='aisle'){aisle=Math.max(1,aisle+d);$('aisleVal').textContent=aisle;}
   else{shelf=Math.max(1,shelf+d);$('shelfVal').textContent=shelf;}});
 
 $('submitBtn').onclick=async()=>{
   $('submitBtn').disabled=true; const geo=await getGeo();
-  const v=lastVoid==null?0:Math.round(lastVoid*10)/10;
-  const band=v>=60?'Critical':(v>=CONFIG.REDLINE_VOID?'Low':'Full');
+  const v=Math.round(lastVoid*10)/10, band=v>=60?'Critical':(v>=CONFIG.REDLINE_VOID?'Low':'Full');
   const payload={scan_id:crypto.randomUUID(),store_id:CONFIG.STORE_ID,auditor_id:CONFIG.AUDITOR_ID,
     aisle_number:aisle,shelf_level:shelf,total_items_detected:lastCount,void_percentage:v,fullness_band:band,
-    baseline_ref:baseline?('bl_'+(baseline*1000|0)):null,quality_score:Math.round(lastQuality*100)/100,
-    geo,thumbnail_url:null,
+    baseline_ref:null,quality_score:Math.round(lastQuality*100)/100,geo,thumbnail_url:null,
     device_model:navigator.userAgent.match(/\(([^)]+)\)/)?.[1]?.split(';').slice(-2).join(';').trim()||'unknown',
     app_version:CONFIG.APP_VERSION,captured_at:new Date().toISOString(),synced_at:null};
   console.log('[ShelfScan] payload',payload);
   $('payloadOut').textContent=JSON.stringify(payload,null,2);
   $('doneSheet').classList.remove('hidden');
 };
-function getGeo(){return new Promise(res=>{
-  if(!navigator.geolocation)return res(null);
+function getGeo(){return new Promise(res=>{ if(!navigator.geolocation)return res(null);
   navigator.geolocation.getCurrentPosition(
     p=>res({lat:+p.coords.latitude.toFixed(5),lng:+p.coords.longitude.toFixed(5),accuracy_m:Math.round(p.coords.accuracy)}),
-    ()=>res(null),{enableHighAccuracy:true,timeout:4000});});}
-$('nextBtn').onclick=()=>{$('doneSheet').classList.add('hidden');voidBuf=[];$('submitBtn').disabled=false;};
+    ()=>res(null),{enableHighAccuracy:true,timeout:4000}); });}
+$('nextBtn').onclick=()=>{$('doneSheet').classList.add('hidden');$('submitBtn').disabled=false;backToPreview();};
 
-function fail(title,msg){$('loadSheet').classList.add('hidden');
-  $('errTitle').textContent=title;$('errMsg').textContent=msg;$('errSheet').classList.remove('hidden');}
+function fail(t,m){$('errTitle').textContent=t;$('errMsg').textContent=m;$('errSheet').classList.remove('hidden');}
 
 start();
 </script>
