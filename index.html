@@ -8,7 +8,6 @@
   :root{
     --navy:#061632; --navy2:#0B1F3F; --teal:#028090; --mint:#5DCAA5;
     --mint-pale:#9FE1CB; --ink:#EAF7F2; --warn:#F2B705; --crit:#E5484D;
-    --grid: rgba(159,225,203,.22);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;height:100%;background:var(--navy);color:var(--ink);
@@ -16,8 +15,6 @@
   #stage{position:fixed;inset:0;background:#000;}
   video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   canvas#overlay{position:absolute;inset:0;width:100%;height:100%;}
-
-  /* ---- HUD ---- */
   .hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
     align-items:flex-start;padding:14px 16px;pointer-events:none;
     background:linear-gradient(180deg,rgba(6,22,50,.78),rgba(6,22,50,0));}
@@ -25,22 +22,17 @@
     border-radius:12px;padding:8px 12px;line-height:1.05;}
   .chip .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mint-pale);opacity:.85;}
   .chip .v{font-size:22px;font-weight:bold;}
-  .void .v{transition:color .25s;}
   .band{font-size:11px;font-weight:bold;letter-spacing:.06em;margin-top:2px;}
-
-  /* ---- target-zone caption ---- */
+  #dbg{position:absolute;top:74px;left:0;right:0;text-align:center;font-family:monospace;
+    font-size:11px;color:var(--mint-pale);text-shadow:0 1px 3px #000;pointer-events:none;}
+  #dbg .bad{color:#FF8B8E;}
   #zoneCaption{position:absolute;left:0;right:0;text-align:center;font-size:12px;
     letter-spacing:.04em;color:var(--mint-pale);pointer-events:none;text-shadow:0 1px 3px #000;}
-
-  /* ---- toast ---- */
-  #toast{position:absolute;top:46%;left:50%;transform:transl(-50%,-50%);translate:-50% -50%;
+  #toast{position:absolute;top:46%;left:50%;translate:-50% -50%;
     background:rgba(229,72,77,.92);color:#fff;font-weight:bold;font-size:15px;
     padding:12px 18px;border-radius:14px;opacity:0;transition:opacity .18s;pointer-events:none;
     box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center;max-width:80%;}
-  #toast.show{opacity:1;}
-  #toast.warnTone{background:rgba(242,183,5,.95);color:#1a1400;}
-
-  /* ---- action bar ---- */
+  #toast.show{opacity:1;} #toast.warnTone{background:rgba(242,183,5,.95);color:#1a1400;}
   .bar{position:absolute;left:0;right:0;bottom:0;padding:12px 14px 18px;
     background:linear-gradient(0deg,rgba(6,22,50,.92),rgba(6,22,50,0));}
   .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
@@ -48,35 +40,28 @@
     border-radius:12px;overflow:hidden;flex:1;}
   .stepper label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mint-pale);
     padding:0 8px;opacity:.85;flex:1;}
-  .stepper button{width:38px;height:38px;background:transparent;border:none;color:var(--ink);
-    font-size:20px;font-weight:bold;}
+  .stepper button{width:38px;height:38px;background:transparent;border:none;color:var(--ink);font-size:20px;font-weight:bold;}
   .stepper .val{min-width:30px;text-align:center;font-size:17px;font-weight:bold;}
   .btn{border:none;border-radius:13px;font-size:15px;font-weight:bold;padding:14px;color:#fff;}
-  .btn.primary{background:var(--teal);flex:2;}
-  .btn.ghost{background:rgba(11,31,63,.8);border:1px solid rgba(159,225,203,.3);color:var(--ink);flex:1;}
-  .btn:active{transform:scale(.98);}
-  .btn:disabled{opacity:.45;}
-
-  /* ---- overlays (loading / payload / error) ---- */
+  .btn.primary{background:var(--teal);flex:2;} .btn.ghost{background:rgba(11,31,63,.8);border:1px solid rgba(159,225,203,.3);color:var(--ink);flex:1;}
+  .btn:active{transform:scale(.98);} .btn:disabled{opacity:.45;}
   .sheet{position:absolute;inset:0;background:rgba(6,22,50,.93);display:flex;flex-direction:column;
     align-items:center;justify-content:center;text-align:center;padding:28px;z-index:20;}
-  .sheet h1{font-size:20px;margin:0 0 6px;color:#fff;}
-  .sheet p{font-size:13px;color:var(--mint-pale);max-width:300px;line-height:1.5;}
+  .sheet h1{font-size:20px;margin:0 0 6px;color:#fff;} .sheet p{font-size:13px;color:var(--mint-pale);max-width:300px;line-height:1.5;}
   .spinner{width:38px;height:38px;border:3px solid rgba(159,225,203,.25);border-top-color:var(--mint);
-    border-radius:50%;animation:spin 1s linear infinite;margin-bottom:18px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
+    border-radius:50%;animation:spin 1s linear infinite;margin-bottom:18px;} @keyframes spin{to{transform:rotate(360deg);}}
   pre.payload{text-align:left;background:#04101f;border:1px solid rgba(159,225,203,.2);border-radius:12px;
     padding:14px;font-size:11px;color:var(--mint);max-width:340px;width:100%;overflow:auto;max-height:48vh;}
   .badge{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mint-pale);
     border:1px solid rgba(159,225,203,.3);border-radius:20px;padding:5px 12px;margin-bottom:14px;}
-  .hidden{display:none!important;}
-  .small{font-size:11px;color:var(--mint-pale);opacity:.8;margin-top:14px;}
+  .hidden{display:none!important;} .small{font-size:11px;color:var(--mint-pale);opacity:.8;margin-top:14px;}
 </style>
 </head>
 <body>
 <div id="stage">
   <video id="video" playsinline muted autoplay></video>
   <canvas id="overlay"></canvas>
+  <div id="dbg">booting…</div>
   <div id="zoneCaption">Fill the box with one shelf section</div>
 
   <div class="hud">
@@ -101,12 +86,9 @@
       <button class="btn ghost" id="torchBtn">Flashlight</button>
       <button class="btn ghost" id="baseBtn">Set full = baseline</button>
     </div>
-    <div class="row">
-      <button class="btn primary" id="submitBtn" disabled>Submit scan</button>
-    </div>
+    <div class="row"><button class="btn primary" id="submitBtn" disabled>Submit scan</button></div>
   </div>
 
-  <!-- loading -->
   <div class="sheet" id="loadSheet">
     <div class="badge">StoreSight · Edge AI</div>
     <div class="spinner"></div>
@@ -114,15 +96,11 @@
     <p id="loadMsg">Requesting camera…</p>
     <div class="small" id="backendMsg"></div>
   </div>
-
-  <!-- error -->
   <div class="sheet hidden" id="errSheet">
     <div class="badge" style="border-color:var(--crit);color:#ffb4b6">Can't start</div>
     <h1 id="errTitle">Something went wrong</h1>
     <p id="errMsg"></p>
   </div>
-
-  <!-- submitted payload -->
   <div class="sheet hidden" id="doneSheet">
     <div class="badge">Scan queued</div>
     <h1>Sent to StoreSight</h1>
@@ -133,315 +111,218 @@
 </div>
 
 <script type="module">
-/* ============================================================================
-   ShelfScan — StoreSight Edge MVP
-   Engine: transformers.js (ONNX Runtime Web) · WebGPU → WASM fallback
-   ----------------------------------------------------------------------------
-   MODEL SWAP (the one line that matters): set MODEL_ID below.
-   - Demo default  : 'Xenova/yolos-tiny'  (Apache-2.0, COCO; aim at a BEVERAGE
-                     aisle where bottle/can/cup classes fire reliably)
-   - Production fit : a single-class dense-retail detector exported to ONNX
-                     (RF-DETR / YOLOX / RT-DETR fine-tuned on retail). Swap the
-                     id, keep everything else. NB: models trained on the SKU110K
-                     dataset are academic/non-commercial — retrain on cleared
-                     data before shipping.
-   ============================================================================ */
 import { pipeline, RawImage, env }
   from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2';
 
 const CONFIG = {
-  MODEL_ID: 'Xenova/yolos-tiny',
-  CONF: 0.30,                       // detection confidence floor
-  INFER_W: 384, INFER_H: 288,       // inference frame size (small = fast)
-  ZONE: { x:0.10, y:0.34, w:0.80, h:0.30 },   // target zone, fraction of frame
-  GRID_COLS: 32, GRID_ROWS: 12,     // occupancy grid over the zone
-  CELL_FILL: 0.30,                  // box must cover >=30% of a cell to occupy it
-  MEDIAN_WINDOW: 24,                // frames of void% to median over (~2s)
-  REDLINE_VOID: 30,                 // > 30% void == below 70% stock (Rachel's line)
-  LUM_MIN: 42,                      // mean luminance floor (0-255)
-  BLUR_MIN: 90,                     // variance-of-Laplacian floor (lower = blurrier)
-  MOTION_MAX: 26,                   // mean frame delta ceiling
-  STORE_ID: 'ST-001', AUDITOR_ID: 'aud_017', APP_VERSION: '0.1.0',
+  MODEL_ID:'Xenova/yolos-tiny',   // COCO demo model. Aim at bottles/cups/cans.
+  CONF:0.25,
+  INFER_W:384, INFER_H:288,
+  ZONE:{ x:0.10, y:0.34, w:0.80, h:0.30 },
+  GRID_COLS:32, GRID_ROWS:12, CELL_FILL:0.30,
+  MEDIAN_WINDOW:18, REDLINE_VOID:30,
+  LUM_MIN:42, BLUR_MIN:90, MOTION_MAX:26,
+  STORE_ID:'ST-001', AUDITOR_ID:'aud_017', APP_VERSION:'0.2.0',
 };
 
-const $ = id => document.getElementById(id);
-const video = $('video');
-const overlay = $('overlay');
-const octx = overlay.getContext('2d');
-
-// small canvases for inference + quality sampling
-const inferCanvas = Object.assign(document.createElement('canvas'),
-  { width: CONFIG.INFER_W, height: CONFIG.INFER_H });
-const ictx = inferCanvas.getContext('2d', { willReadFrequently:true });
-const QW=64, QH=48;
-const qCanvas = Object.assign(document.createElement('canvas'), { width:QW, height:QH });
-const qctx = qCanvas.getContext('2d', { willReadFrequently:true });
+const $=id=>document.getElementById(id);
+const video=$('video'), overlay=$('overlay'), octx=overlay.getContext('2d');
+const inferCanvas=Object.assign(document.createElement('canvas'),{width:CONFIG.INFER_W,height:CONFIG.INFER_H});
+const ictx=inferCanvas.getContext('2d',{willReadFrequently:true});
+const QW=64,QH=48;
+const qCanvas=Object.assign(document.createElement('canvas'),{width:QW,height:QH});
+const qctx=qCanvas.getContext('2d',{willReadFrequently:true});
 
 let detector=null, backend='', videoReady=false, running=false;
-let latest=[];                 // normalized detections {x0,y0,x1,y1,s}
-let voidBuf=[], lastVoid=null, lastCount=0, lastQuality=1;
-let baseline=null;             // baseline occupied-fraction when "full"
-let prevGray=null;
+let latest=[], rawCount=0, lastMs=0, lastErr='';
+let voidBuf=[], lastVoid=null, lastCount=0, lastQuality=1, baseline=null, prevGray=null;
 let aisle=4, shelf=2;
-const track = () => (video.srcObject && video.srcObject.getVideoTracks()[0]) || null;
+const track=()=>(video.srcObject&&video.srcObject.getVideoTracks()[0])||null;
 
-/* ---------- startup ---------- */
+function dbg(){
+  const e=$('dbg');
+  e.innerHTML = `${backend||'…'} · ${lastMs}ms · raw ${rawCount} · zone ${lastCount}` +
+    (lastErr?` · <span class="bad">${lastErr}</span>`:'');
+}
+
 async function start(){
   try{
-    $('loadMsg').textContent = 'Requesting camera…';
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } },
-      audio:false });
-    video.srcObject = stream;
-    await video.play();
-    videoReady = true;
-    sizeOverlay();
-  }catch(e){ return fail('Camera blocked',
-    'Allow camera access and reload. The scanner needs the rear camera over HTTPS (or localhost).'); }
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+    video.srcObject=stream; await video.play(); videoReady=true; sizeOverlay();
+  }catch(e){ return fail('Camera blocked','Allow camera access and reload. Needs the rear camera over HTTPS.'); }
 
-  $('loadMsg').textContent = 'Loading the detection model…';
+  $('loadMsg').textContent='Loading the detection model…';
   try{ await loadModel(); }
-  catch(e){ return fail('Model failed to load',
-    'Check the connection and reload. The model downloads once, then caches for offline use.'); }
+  catch(e){ return fail('Model failed to load', String(e.message||e)); }
 
-  $('backendMsg').textContent = 'Running on ' + backend.toUpperCase();
+  $('backendMsg').textContent='Running on '+backend;
   $('loadSheet').classList.add('hidden');
-  $('submitBtn').disabled = false;
-  running = true;
-  setupTorch();
-  requestAnimationFrame(renderLoop);
-  inferLoop();
+  $('submitBtn').disabled=false; running=true;
+  setupTorch(); requestAnimationFrame(renderLoop); inferLoop();
 }
 
 async function loadModel(){
-  env.allowLocalModels = false;            // pull from HF hub
-  for (const device of ['webgpu','wasm']){
+  env.allowLocalModels=false;
+  // Force WASM: yolos-tiny is unreliable on WebGPU. Try quantized, then full.
+  const attempts=[{device:'wasm',dtype:'q8'},{device:'wasm',dtype:'fp32'}];
+  let err;
+  for(const a of attempts){
     try{
-      detector = await pipeline('object-detection', CONFIG.MODEL_ID, {
-        device,
-        dtype: device==='webgpu' ? 'fp16' : 'q8',
-        progress_callback: p => {
-          if(p.status==='progress' && p.file)
-            $('loadMsg').textContent = `Loading model… ${Math.round(p.progress||0)}%`;
-        }
-      });
-      backend = device; return;
-    }catch(err){ console.warn(`[${device}] backend unavailable`, err); }
+      detector=await pipeline('object-detection',CONFIG.MODEL_ID,{...a,
+        progress_callback:p=>{ if(p.status==='progress'&&p.file)
+          $('loadMsg').textContent=`Loading model… ${Math.round(p.progress||0)}%`; }});
+      backend=`${a.device}/${a.dtype}`; return;
+    }catch(e){ err=e; console.warn('load failed',a,e); }
   }
-  throw new Error('no inference backend available');
+  throw err;
 }
 
-/* ---------- inference loop (decoupled from render) ---------- */
+// build the model input from the *same* cover-cropped region the user sees
+function drawCoverToInfer(){
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) return false;
+  const dispA=overlay.width/overlay.height, vidA=vw/vh;
+  let sx,sy,sw,sh;
+  if(vidA>dispA){ sh=vh; sw=vh*dispA; sx=(vw-sw)/2; sy=0; }
+  else { sw=vw; sh=vw/dispA; sx=0; sy=(vh-sh)/2; }
+  ictx.drawImage(video, sx,sy,sw,sh, 0,0, CONFIG.INFER_W, CONFIG.INFER_H);
+  return true;
+}
+async function frameToImage(){
+  try{ return await RawImage.fromCanvas(inferCanvas); }catch(_){}
+  const id=ictx.getImageData(0,0,CONFIG.INFER_W,CONFIG.INFER_H);
+  let img=new RawImage(id.data,CONFIG.INFER_W,CONFIG.INFER_H,4);
+  try{ img=img.rgb(); }catch(_){}
+  return img;
+}
+
 async function inferLoop(){
-  if(running && videoReady && detector){
+  if(running&&videoReady&&detector){
     try{
-      ictx.drawImage(video, 0,0, CONFIG.INFER_W, CONFIG.INFER_H);
-      const imgData = ictx.getImageData(0,0, CONFIG.INFER_W, CONFIG.INFER_H);
-      const image = new RawImage(imgData.data, CONFIG.INFER_W, CONFIG.INFER_H, 4);
-      const out = await detector(image, { threshold: CONFIG.CONF });
-
-      latest = out.map(d => ({
-        x0: d.box.xmin/CONFIG.INFER_W, y0: d.box.ymin/CONFIG.INFER_H,
-        x1: d.box.xmax/CONFIG.INFER_W, y1: d.box.ymax/CONFIG.INFER_H, s: d.score
-      }));
-      runQuality(imgData);
-      computeMetrics();
-    }catch(err){ console.warn('inference frame skipped', err); }
+      if(drawCoverToInfer()){
+        const img=await frameToImage();
+        const t0=performance.now();
+        const out=await detector(img,{threshold:CONFIG.CONF});
+        lastMs=Math.round(performance.now()-t0);
+        rawCount=out.length; lastErr='';
+        latest=out.map(d=>({x0:d.box.xmin/CONFIG.INFER_W,y0:d.box.ymin/CONFIG.INFER_H,
+          x1:d.box.xmax/CONFIG.INFER_W,y1:d.box.ymax/CONFIG.INFER_H,s:d.score}));
+        runQuality(); computeMetrics();
+      }
+    }catch(err){ lastErr=String(err.message||err).slice(0,60); console.warn(err); }
+    dbg();
   }
-  requestAnimationFrame(inferLoop);   // next frame only after this one resolves
+  requestAnimationFrame(inferLoop);
 }
 
-/* ---------- occupancy-grid void + temporal median ---------- */
-function inZone(d){
-  const cx=(d.x0+d.x1)/2, cy=(d.y0+d.y1)/2, z=CONFIG.ZONE;
-  return cx>=z.x && cx<=z.x+z.w && cy>=z.y && cy<=z.y+z.h;
-}
-function computeMetrics(){
-  const z=CONFIG.ZONE, C=CONFIG.GRID_COLS, R=CONFIG.GRID_ROWS;
-  const kept = latest.filter(inZone);
-  const cellW=z.w/C, cellH=z.h/R, cellA=cellW*cellH;
-  let occupied=0;
-  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
-    const cx0=z.x+c*cellW, cy0=z.y+r*cellH, cx1=cx0+cellW, cy1=cy0+cellH;
-    let cover=0;
-    for(const d of kept){
-      const ix=Math.max(0, Math.min(cx1,d.x1)-Math.max(cx0,d.x0));
-      const iy=Math.max(0, Math.min(cy1,d.y1)-Math.max(cy0,d.y0));
-      cover += ix*iy;
-      if(cover/cellA >= CONFIG.CELL_FILL){ occupied++; break; }
-    }
-  }
-  const occFrac = occupied/(C*R);
-  // relative to baseline if captured, else absolute
-  let voidPct = baseline ? Math.max(0,(1 - occFrac/Math.max(baseline,1e-3)))*100
-                         : (1-occFrac)*100;
-  voidPct = Math.max(0, Math.min(100, voidPct));
-
-  voidBuf.push(voidPct);
-  if(voidBuf.length>CONFIG.MEDIAN_WINDOW) voidBuf.shift();
-  lastVoid = median(voidBuf);
-  lastCount = kept.length;
-  paintHUD();
-}
-const median = a => { const s=[...a].sort((x,y)=>x-y); const m=s.length>>1;
-  return s.length? (s.length%2? s[m] : (s[m-1]+s[m])/2) : 0; };
-
-function paintHUD(){
-  $('itemCount').textContent = lastCount;
-  if(lastVoid==null) return;
-  const v=Math.round(lastVoid);
-  $('voidVal').textContent = v+'%';
-  let band, col;
-  if(v >= 60){ band='CRITICAL'; col='var(--crit)'; }
-  else if(v >= CONFIG.REDLINE_VOID){ band='LOW'; col='var(--warn)'; }
-  else { band='FULL'; col='var(--mint)'; }
-  $('voidVal').style.color = col;
-  $('bandVal').textContent = baseline ? band+' · vs full' : band;
-  $('bandVal').style.color = col;
-}
-
-/* ---------- quality checks ---------- */
-function runQuality(srcImageData){
-  qctx.drawImage(inferCanvas,0,0,QW,QH);
-  const px=qctx.getImageData(0,0,QW,QH).data;
-  const gray=new Float32Array(QW*QH);
-  let sum=0;
-  for(let i=0,j=0;i<px.length;i+=4,j++){
-    const g=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];
-    gray[j]=g; sum+=g;
-  }
-  const lum=sum/(QW*QH);
-
-  // variance of Laplacian (focus / blur)
-  let lsum=0, lsq=0, n=0;
-  for(let y=1;y<QH-1;y++) for(let x=1;x<QW-1;x++){
-    const i=y*QW+x;
-    const lap=4*gray[i]-gray[i-1]-gray[i+1]-gray[i-QW]-gray[i+QW];
-    lsum+=lap; lsq+=lap*lap; n++;
-  }
-  const blurVar=(lsq/n)-(lsum/n)**2;
-
-  // motion (mean abs delta vs previous frame)
-  let motion=0;
-  if(prevGray){ let m=0; for(let k=0;k<gray.length;k++) m+=Math.abs(gray[k]-prevGray[k]); motion=m/gray.length; }
-  prevGray=gray;
-
-  // quality score + alert (priority: dark > blur/motion)
-  let q=1, alert=null, warnTone=false;
-  if(lum < CONFIG.LUM_MIN){ alert='Too dark — turn on the flashlight'; q-=0.5; }
-  else if(motion > CONFIG.MOTION_MAX){ alert='Hold steady — slow down'; warnTone=true; q-=0.35; }
-  else if(blurVar < CONFIG.BLUR_MIN){ alert='Hold steady — let it focus'; warnTone=true; q-=0.3; }
-  lastQuality=Math.max(0,q);
-
-  // frames that fail quality don't pollute the void median
-  if(alert) voidBuf.length && voidBuf.pop();
-  showToast(alert, warnTone);
-}
-let toastTimer=null;
-function showToast(msg, warn){
-  const t=$('toast');
-  if(!msg){ t.classList.remove('show'); return; }
-  t.textContent=msg; t.classList.toggle('warnTone',!!warn); t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),900);
-}
-
-/* ---------- render loop (boxes + zone, 60fps) ---------- */
-function sizeOverlay(){ overlay.width=overlay.clientWidth; overlay.height=overlay.clientHeight; }
-addEventListener('resize', sizeOverlay);
-function renderLoop(){
-  const W=overlay.width, H=overlay.height, z=CONFIG.ZONE;
-  octx.clearRect(0,0,W,H);
-  // dim outside the zone
-  octx.fillStyle='rgba(6,22,50,.30)';
-  octx.fillRect(0,0,W,H);
-  octx.clearRect(z.x*W, z.y*H, z.w*W, z.h*H);
-  // zone frame
-  octx.strokeStyle='rgba(159,225,203,.9)'; octx.lineWidth=2;
-  octx.strokeRect(z.x*W, z.y*H, z.w*W, z.h*H);
-  // detections inside zone
-  octx.lineWidth=2; octx.strokeStyle='rgba(93,202,165,.95)';
-  for(const d of latest){ if(!inZone(d)) continue;
-    octx.strokeRect(d.x0*W, d.y0*H, (d.x1-d.x0)*W, (d.y1-d.y0)*H); }
-  // caption position
-  $('zoneCaption').style.top = (z.y*H - 22) + 'px';
-  requestAnimationFrame(renderLoop);
-}
-
-/* ---------- torch ---------- */
-function setupTorch(){
-  const t=track();
-  const caps = t && t.getCapabilities ? t.getCapabilities() : {};
-  if(!caps || !('torch' in caps)){ $('torchBtn').disabled=true; $('torchBtn').textContent='No flashlight'; }
-}
-let torchOn=false;
-$('torchBtn').onclick = async ()=>{
-  const t=track(); if(!t) return;
-  try{ torchOn=!torchOn; await t.applyConstraints({ advanced:[{ torch:torchOn }] });
-    $('torchBtn').textContent = torchOn?'Flashlight on':'Flashlight'; }
-  catch(e){ $('torchBtn').disabled=true; $('torchBtn').textContent='No flashlight'; }
-};
-
-/* ---------- baseline / steppers ---------- */
-$('baseBtn').onclick = ()=>{
-  const z=CONFIG.ZONE, C=CONFIG.GRID_COLS, R=CONFIG.GRID_ROWS;
-  // recompute current occupied fraction as "full"
-  const kept=latest.filter(inZone); const cellW=z.w/C, cellH=z.h/R, cellA=cellW*cellH;
-  let occ=0;
-  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+const inZone=d=>{ const cx=(d.x0+d.x1)/2,cy=(d.y0+d.y1)/2,z=CONFIG.ZONE;
+  return cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h; };
+function occFraction(){
+  const z=CONFIG.ZONE,C=CONFIG.GRID_COLS,R=CONFIG.GRID_ROWS,kept=latest.filter(inZone);
+  const cellW=z.w/C,cellH=z.h/R,cellA=cellW*cellH; let occ=0;
+  for(let r=0;r<R;r++)for(let c=0;c<C;c++){
     const cx0=z.x+c*cellW,cy0=z.y+r*cellH,cx1=cx0+cellW,cy1=cy0+cellH; let cover=0;
     for(const d of kept){ const ix=Math.max(0,Math.min(cx1,d.x1)-Math.max(cx0,d.x0));
       const iy=Math.max(0,Math.min(cy1,d.y1)-Math.max(cy0,d.y0)); cover+=ix*iy;
-      if(cover/cellA>=CONFIG.CELL_FILL){occ++;break;} }
-  }
-  baseline=Math.max(0.05, occ/(C*R)); voidBuf=[];
-  $('baseBtn').textContent='Baseline set ✓';
-  setTimeout(()=>$('baseBtn').textContent='Reset baseline',1200);
-};
-document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{
-  const d=+b.dataset.d;
-  if(b.dataset.step==='aisle'){ aisle=Math.max(1,aisle+d); $('aisleVal').textContent=aisle; }
-  else { shelf=Math.max(1,shelf+d); $('shelfVal').textContent=shelf; }
-});
+      if(cover/cellA>=CONFIG.CELL_FILL){occ++;break;} } }
+  return {frac:occ/(C*R),kept:kept.length};
+}
+function computeMetrics(){
+  const {frac,kept}=occFraction();
+  let v=baseline?Math.max(0,(1-frac/Math.max(baseline,1e-3)))*100:(1-frac)*100;
+  v=Math.max(0,Math.min(100,v));
+  voidBuf.push(v); if(voidBuf.length>CONFIG.MEDIAN_WINDOW) voidBuf.shift();
+  lastVoid=median(voidBuf); lastCount=kept; paintHUD();
+}
+const median=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;
+  return s.length?(s.length%2?s[m]:(s[m-1]+s[m])/2):0;};
+function paintHUD(){
+  $('itemCount').textContent=lastCount;
+  if(lastVoid==null)return; const v=Math.round(lastVoid);
+  $('voidVal').textContent=v+'%'; let band,col;
+  if(v>=60){band='CRITICAL';col='var(--crit)';}
+  else if(v>=CONFIG.REDLINE_VOID){band='LOW';col='var(--warn)';}
+  else{band='FULL';col='var(--mint)';}
+  $('voidVal').style.color=col; $('bandVal').textContent=baseline?band+' · vs full':band; $('bandVal').style.color=col;
+}
 
-/* ---------- submit ---------- */
-$('submitBtn').onclick = async ()=>{
-  $('submitBtn').disabled=true;
-  const geo = await getGeo();
-  const v = lastVoid==null?0:Math.round(lastVoid*10)/10;
-  const band = v>=60?'Critical':(v>=CONFIG.REDLINE_VOID?'Low':'Full');
-  const payload = {
-    scan_id: crypto.randomUUID(),
-    store_id: CONFIG.STORE_ID, auditor_id: CONFIG.AUDITOR_ID,
-    aisle_number: aisle, shelf_level: shelf,
-    total_items_detected: lastCount,
-    void_percentage: v, fullness_band: band,
-    baseline_ref: baseline?('bl_'+(baseline*1000|0)):null,
-    quality_score: Math.round(lastQuality*100)/100,
-    geo, thumbnail_url:null,
-    device_model: navigator.userAgent.match(/\(([^)]+)\)/)?.[1]?.split(';').slice(-2).join(';').trim() || 'unknown',
-    app_version: CONFIG.APP_VERSION,
-    captured_at: new Date().toISOString(),
-    synced_at: null
-  };
-  // MVP: stub the network call. Production: queue to IndexedDB outbox -> Supabase (RLS).
-  console.log('[ShelfScan] payload', payload);
-  $('payloadOut').textContent = JSON.stringify(payload, null, 2);
+function runQuality(){
+  qctx.drawImage(inferCanvas,0,0,QW,QH);
+  const px=qctx.getImageData(0,0,QW,QH).data, gray=new Float32Array(QW*QH); let sum=0;
+  for(let i=0,j=0;i<px.length;i+=4,j++){const g=0.299*px[i]+0.587*px[i+1]+0.114*px[i+2];gray[j]=g;sum+=g;}
+  const lum=sum/(QW*QH);
+  let lsum=0,lsq=0,n=0;
+  for(let y=1;y<QH-1;y++)for(let x=1;x<QW-1;x++){const i=y*QW+x;
+    const lap=4*gray[i]-gray[i-1]-gray[i+1]-gray[i-QW]-gray[i+QW];lsum+=lap;lsq+=lap*lap;n++;}
+  const blurVar=(lsq/n)-(lsum/n)**2;
+  let motion=0; if(prevGray){let m=0;for(let k=0;k<gray.length;k++)m+=Math.abs(gray[k]-prevGray[k]);motion=m/gray.length;}
+  prevGray=gray;
+  let q=1,alert=null,warn=false;
+  if(lum<CONFIG.LUM_MIN){alert='Too dark — turn on the flashlight';q-=0.5;}
+  else if(motion>CONFIG.MOTION_MAX){alert='Hold steady — slow down';warn=true;q-=0.35;}
+  else if(blurVar<CONFIG.BLUR_MIN){alert='Hold steady — let it focus';warn=true;q-=0.3;}
+  lastQuality=Math.max(0,q); showToast(alert,warn);
+}
+let toastTimer=null;
+function showToast(msg,warn){const t=$('toast');
+  if(!msg){t.classList.remove('show');return;}
+  t.textContent=msg;t.classList.toggle('warnTone',!!warn);t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),900);}
+
+function sizeOverlay(){overlay.width=overlay.clientWidth;overlay.height=overlay.clientHeight;}
+addEventListener('resize',sizeOverlay);
+function renderLoop(){
+  const W=overlay.width,H=overlay.height,z=CONFIG.ZONE;
+  octx.clearRect(0,0,W,H);
+  octx.fillStyle='rgba(6,22,50,.30)';octx.fillRect(0,0,W,H);
+  octx.clearRect(z.x*W,z.y*H,z.w*W,z.h*H);
+  octx.strokeStyle='rgba(159,225,203,.9)';octx.lineWidth=2;octx.strokeRect(z.x*W,z.y*H,z.w*W,z.h*H);
+  octx.lineWidth=2;octx.strokeStyle='rgba(93,202,165,.95)';
+  for(const d of latest){ if(!inZone(d))continue;
+    octx.strokeRect(d.x0*W,d.y0*H,(d.x1-d.x0)*W,(d.y1-d.y0)*H); }
+  $('zoneCaption').style.top=(z.y*H-22)+'px';
+  requestAnimationFrame(renderLoop);
+}
+
+function setupTorch(){const t=track();const caps=t&&t.getCapabilities?t.getCapabilities():{};
+  if(!caps||!('torch' in caps)){$('torchBtn').disabled=true;$('torchBtn').textContent='No flashlight';}}
+let torchOn=false;
+$('torchBtn').onclick=async()=>{const t=track();if(!t)return;
+  try{torchOn=!torchOn;await t.applyConstraints({advanced:[{torch:torchOn}]});
+    $('torchBtn').textContent=torchOn?'Flashlight on':'Flashlight';}
+  catch(e){$('torchBtn').disabled=true;$('torchBtn').textContent='No flashlight';}};
+
+$('baseBtn').onclick=()=>{const {frac}=occFraction();
+  baseline=Math.max(0.05,frac);voidBuf=[];$('baseBtn').textContent='Baseline set ✓';
+  setTimeout(()=>$('baseBtn').textContent='Reset baseline',1200);};
+document.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{const d=+b.dataset.d;
+  if(b.dataset.step==='aisle'){aisle=Math.max(1,aisle+d);$('aisleVal').textContent=aisle;}
+  else{shelf=Math.max(1,shelf+d);$('shelfVal').textContent=shelf;}});
+
+$('submitBtn').onclick=async()=>{
+  $('submitBtn').disabled=true; const geo=await getGeo();
+  const v=lastVoid==null?0:Math.round(lastVoid*10)/10;
+  const band=v>=60?'Critical':(v>=CONFIG.REDLINE_VOID?'Low':'Full');
+  const payload={scan_id:crypto.randomUUID(),store_id:CONFIG.STORE_ID,auditor_id:CONFIG.AUDITOR_ID,
+    aisle_number:aisle,shelf_level:shelf,total_items_detected:lastCount,void_percentage:v,fullness_band:band,
+    baseline_ref:baseline?('bl_'+(baseline*1000|0)):null,quality_score:Math.round(lastQuality*100)/100,
+    geo,thumbnail_url:null,
+    device_model:navigator.userAgent.match(/\(([^)]+)\)/)?.[1]?.split(';').slice(-2).join(';').trim()||'unknown',
+    app_version:CONFIG.APP_VERSION,captured_at:new Date().toISOString(),synced_at:null};
+  console.log('[ShelfScan] payload',payload);
+  $('payloadOut').textContent=JSON.stringify(payload,null,2);
   $('doneSheet').classList.remove('hidden');
 };
-function getGeo(){
-  return new Promise(res=>{
-    if(!navigator.geolocation) return res(null);
-    navigator.geolocation.getCurrentPosition(
-      p=>res({ lat:+p.coords.latitude.toFixed(5), lng:+p.coords.longitude.toFixed(5),
-               accuracy_m:Math.round(p.coords.accuracy) }),
-      ()=>res(null), { enableHighAccuracy:true, timeout:4000 });
-  });
-}
-$('nextBtn').onclick = ()=>{ $('doneSheet').classList.add('hidden'); voidBuf=[]; $('submitBtn').disabled=false; };
+function getGeo(){return new Promise(res=>{
+  if(!navigator.geolocation)return res(null);
+  navigator.geolocation.getCurrentPosition(
+    p=>res({lat:+p.coords.latitude.toFixed(5),lng:+p.coords.longitude.toFixed(5),accuracy_m:Math.round(p.coords.accuracy)}),
+    ()=>res(null),{enableHighAccuracy:true,timeout:4000});});}
+$('nextBtn').onclick=()=>{$('doneSheet').classList.add('hidden');voidBuf=[];$('submitBtn').disabled=false;};
 
-/* ---------- error helper ---------- */
-function fail(title,msg){ $('loadSheet').classList.add('hidden');
-  $('errTitle').textContent=title; $('errMsg').textContent=msg; $('errSheet').classList.remove('hidden'); }
+function fail(title,msg){$('loadSheet').classList.add('hidden');
+  $('errTitle').textContent=title;$('errMsg').textContent=msg;$('errSheet').classList.remove('hidden');}
 
 start();
 </script>
