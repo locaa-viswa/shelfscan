@@ -4,8 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 <title>ShelfScan — StoreSight Edge</title>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <style>
   :root{ --navy:#061632; --navy2:#0B1F3F; --teal:#028090; --mint:#5DCAA5;
     --mint-pale:#9FE1CB; --ink:#EAF7F2; --warn:#F2B705; --crit:#E5484D; }
@@ -30,7 +28,7 @@
     letter-spacing:.03em;color:var(--mint-pale);pointer-events:none;text-shadow:0 1px 3px #000;}
   #toast{position:absolute;top:44%;left:50%;translate:-50% -50%;background:rgba(242,183,5,.95);color:#1a1400;
     font-weight:bold;font-size:14px;padding:11px 16px;border-radius:13px;opacity:0;transition:opacity .18s;
-    pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center;max-width:80%;}
+    pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.4);text-align:center;max-width:80%;z-index:30;}
   #toast.show{opacity:1;}
   .bar{position:absolute;left:0;right:0;bottom:0;padding:12px 14px 18px;
     background:linear-gradient(0deg,rgba(6,22,50,.94),rgba(6,22,50,0));}
@@ -41,17 +39,23 @@
   .stepper button{width:38px;height:38px;background:transparent;border:none;color:var(--ink);font-size:20px;font-weight:bold;}
   .stepper .val{min-width:30px;text-align:center;font-size:17px;font-weight:bold;}
   .btn{border:none;border-radius:13px;font-size:16px;font-weight:bold;padding:15px;color:#fff;}
-  .btn.scan{background:var(--mint);color:#04221a;width:100%;font-size:18px;}
+  .btn.scan{background:var(--mint);color:#04221a;flex:1;font-size:18px;}
   .btn.primary{background:var(--teal);flex:2;} .btn.ghost{background:rgba(11,31,63,.8);border:1px solid rgba(159,225,203,.3);color:var(--ink);flex:1;}
+  .btn.icon{flex:0 0 54px;font-size:20px;padding:14px 0;}
   .btn:active{transform:scale(.98);} .btn:disabled{opacity:.5;}
-  .sheet{position:absolute;inset:0;background:rgba(6,22,50,.93);display:flex;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center;padding:28px;z-index:20;}
-  .sheet h1{font-size:20px;margin:0 0 6px;color:#fff;} .sheet p{font-size:13px;color:var(--mint-pale);max-width:300px;line-height:1.5;}
+  .sheet{position:absolute;inset:0;background:rgba(6,22,50,.95);display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:26px;z-index:25;}
+  .sheet h1{font-size:20px;margin:0 0 6px;color:#fff;} .sheet p{font-size:13px;color:var(--mint-pale);max-width:320px;line-height:1.5;}
   pre.payload{text-align:left;background:#04101f;border:1px solid rgba(159,225,203,.2);border-radius:12px;
-    padding:14px;font-size:11px;color:var(--mint);max-width:340px;width:100%;overflow:auto;max-height:46vh;}
+    padding:14px;font-size:11px;color:var(--mint);max-width:340px;width:100%;overflow:auto;max-height:42vh;}
   .badge{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--mint-pale);
     border:1px solid rgba(159,225,203,.3);border-radius:20px;padding:5px 12px;margin-bottom:14px;}
-  .hidden{display:none!important;} .small{font-size:11px;color:var(--mint-pale);opacity:.8;margin-top:14px;}
+  .field{width:100%;max-width:340px;text-align:left;margin-top:12px;}
+  .field label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mint-pale);}
+  .field input{width:100%;margin-top:5px;padding:12px;border-radius:10px;border:1px solid rgba(159,225,203,.3);
+    background:#04101f;color:var(--ink);font-size:14px;}
+  .hidden{display:none!important;} .small{font-size:11px;color:var(--mint-pale);opacity:.8;margin-top:12px;}
+  a{color:var(--mint);}
 </style>
 </head>
 <body>
@@ -59,7 +63,7 @@
   <video id="video" playsinline muted autoplay></video>
   <canvas id="overlay"></canvas>
   <canvas id="result"></canvas>
-  <div id="dbg">loading…</div>
+  <div id="dbg">starting…</div>
   <div id="caption">Aim at one shelf section, then tap Scan</div>
 
   <div class="hud">
@@ -81,12 +85,27 @@
         <button data-step="shelf" data-d="-1">−</button><div class="val" id="shelfVal">2</div><button data-step="shelf" data-d="1">+</button></div>
     </div>
     <div class="row" id="previewRow">
-      <button class="btn scan" id="scanBtn" disabled>Loading model…</button>
+      <button class="btn ghost icon" id="setBtn" title="Model settings">⚙</button>
+      <button class="btn scan" id="scanBtn">Scan</button>
     </div>
     <div class="row hidden" id="resultRow">
       <button class="btn ghost" id="againBtn">Scan again</button>
       <button class="btn primary" id="submitBtn">Submit scan</button>
     </div>
+  </div>
+
+  <!-- settings -->
+  <div class="sheet hidden" id="setSheet">
+    <div class="badge">Model setup</div>
+    <h1>Roboflow detector</h1>
+    <p>Paste a SKU110K (single-class product) model ID and your API key. Find both on the model's <b>Deploy</b> tab in Roboflow.</p>
+    <div class="field"><label>Model ID / version</label><input id="setModel" placeholder="e.g. sku-110k/2" autocomplete="off" /></div>
+    <div class="field"><label>API key</label><input id="setKey" placeholder="rf_xxx or private key" autocomplete="off" /></div>
+    <div class="row" style="margin-top:18px;width:100%;max-width:340px">
+      <button class="btn ghost" id="setCancel">Cancel</button>
+      <button class="btn primary" id="setSave">Save</button>
+    </div>
+    <div class="small">Don't have one? On roboflow.com, open Universe → search "SKU110K" → pick a model → Deploy tab.</div>
   </div>
 
   <div class="sheet hidden" id="errSheet">
@@ -97,7 +116,7 @@
   <div class="sheet hidden" id="doneSheet">
     <div class="badge">Scan queued</div>
     <h1>Sent to StoreSight</h1>
-    <p>This is the payload the dashboard reads — geo-stamped, queryable, no image leaves the device.</p>
+    <p>This is the payload the dashboard reads — geo-stamped, queryable.</p>
     <pre class="payload" id="payloadOut"></pre>
     <button class="btn primary" id="nextBtn" style="margin-top:16px;max-width:260px;width:100%">Scan next shelf</button>
   </div>
@@ -107,19 +126,24 @@
 const CONFIG = {
   ZONE:{ x:0.10, y:0.34, w:0.80, h:0.30 },
   GRID_COLS:32, GRID_ROWS:12, CELL_FILL:0.30,
-  MIN_SCORE:0.35, MAX_BOXES:20, CAPTURE_LONG:640,
+  MIN_SCORE:0.20, CAPTURE_LONG:800, JPEG_Q:0.7,
   REDLINE_VOID:30, LUM_MIN:42, BLUR_MIN:80,
-  STORE_ID:'ST-001', AUDITOR_ID:'aud_017', APP_VERSION:'0.3.0',
+  STORE_ID:'ST-001', AUDITOR_ID:'aud_017', APP_VERSION:'0.4.0',
 };
 const $=id=>document.getElementById(id);
 const video=$('video'), overlay=$('overlay'), octx=overlay.getContext('2d');
 const result=$('result'), rctx=result.getContext('2d');
 const cap=document.createElement('canvas'), cctx=cap.getContext('2d',{willReadFrequently:true});
 
-let model=null, mode='preview', aisle=4, shelf=2;
-let lastVoid=null, lastCount=0, lastQuality=1, lastMs=0, backend='';
-const track=()=>(video.srcObject&&video.srcObject.getVideoTracks()[0])||null;
-function dbg(extra){ $('dbg').textContent = `tf:${backend||'…'}${lastMs?` · ${lastMs}ms`:''}${extra?` · ${extra}`:''}`; }
+let mode='preview', aisle=4, shelf=2;
+let lastVoid=null, lastCount=0, lastQuality=1, lastMs=0, lastErr='';
+
+/* ---- config (model id + key) persisted on device ---- */
+function getCfg(){ try{ return { model:localStorage.getItem('ss_model')||'', key:localStorage.getItem('ss_key')||'' }; }catch(_){ return {model:'',key:''}; } }
+function setCfg(m,k){ try{ localStorage.setItem('ss_model',m); localStorage.setItem('ss_key',k); }catch(_){ } }
+function configured(){ const c=getCfg(); return c.model&&c.key; }
+
+function dbg(extra){ $('dbg').textContent = `roboflow${lastMs?` · ${lastMs}ms`:''}${extra?` · ${extra}`:''}${lastErr?` · ${lastErr}`:''}`; }
 
 async function start(){
   try{
@@ -127,19 +151,12 @@ async function start(){
       video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
     video.srcObject=stream; await video.play(); sizeCanvases();
   }catch(e){ return fail('Camera blocked','Allow camera access and reload. Needs the rear camera over HTTPS.'); }
-
   requestAnimationFrame(previewLoop);
-  try{
-    await tf.ready(); backend=tf.getBackend(); dbg('model loading');
-    model=await cocoSsd.load({base:'lite_mobilenet_v2'});  // fastest variant
-    $('scanBtn').disabled=false; $('scanBtn').textContent='Scan'; dbg('ready');
-  }catch(e){ return fail('Model failed to load', String(e.message||e)); }
+  if(configured()){ dbg('ready'); } else { dbg('needs setup'); openSettings(); }
 }
-
 function sizeCanvases(){ for(const c of [overlay,result]){ c.width=c.clientWidth; c.height=c.clientHeight; } }
 addEventListener('resize', sizeCanvases);
 
-/* live preview: only draws the target zone (no inference) */
 function previewLoop(){
   if(mode==='preview'){
     const W=overlay.width,H=overlay.height,z=CONFIG.ZONE;
@@ -152,7 +169,6 @@ function previewLoop(){
   requestAnimationFrame(previewLoop);
 }
 
-/* cover-crop the live video into the capture canvas (matches what the user sees) */
 function grabFrame(){
   const vw=video.videoWidth, vh=video.videoHeight;
   let cw=overlay.width, ch=overlay.height;
@@ -163,9 +179,23 @@ function grabFrame(){
   cctx.drawImage(video, sx,sy,sw,sh, 0,0, cw,ch);
 }
 
+/* ---- call Roboflow serverless detection ---- */
+async function detectViaAPI(){
+  const cfg=getCfg();
+  const b64=cap.toDataURL('image/jpeg',CONFIG.JPEG_Q).split(',')[1];
+  const url=`https://serverless.roboflow.com/${cfg.model}?api_key=${encodeURIComponent(cfg.key)}`;
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:b64});
+  if(!res.ok){ throw new Error('API '+res.status); }
+  const data=await res.json();
+  const iw=(data.image&&data.image.width)||cap.width, ih=(data.image&&data.image.height)||cap.height;
+  return (data.predictions||[])
+    .filter(p=>p.confidence>=CONFIG.MIN_SCORE)
+    .map(p=>({ x0:(p.x-p.width/2)/iw, y0:(p.y-p.height/2)/ih,
+               x1:(p.x+p.width/2)/iw, y1:(p.y+p.height/2)/ih, s:p.confidence }));
+}
+
 const inZone=d=>{ const cx=d.x0+(d.x1-d.x0)/2, cy=d.y0+(d.y1-d.y0)/2, z=CONFIG.ZONE;
   return cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h; };
-
 function occFraction(dets){
   const z=CONFIG.ZONE,C=CONFIG.GRID_COLS,R=CONFIG.GRID_ROWS,kept=dets.filter(inZone);
   const cellW=z.w/C,cellH=z.h/R,cellA=cellW*cellH; let occ=0;
@@ -176,7 +206,6 @@ function occFraction(dets){
       if(cover/cellA>=CONFIG.CELL_FILL){occ++;break;} } }
   return {frac:occ/(C*R), kept};
 }
-
 function quality(){
   const QW=64,QH=48,q=document.createElement('canvas'); q.width=QW;q.height=QH;
   const qx=q.getContext('2d',{willReadFrequently:true}); qx.drawImage(cap,0,0,QW,QH);
@@ -186,35 +215,31 @@ function quality(){
   let ls=0,lq=0,n=0;
   for(let y=1;y<QH-1;y++)for(let x=1;x<QW-1;x++){const i=y*QW+x;
     const lap=4*g[i]-g[i-1]-g[i+1]-g[i-QW]-g[i+QW];ls+=lap;lq+=lap*lap;n++;}
-  const blur=(lq/n)-(ls/n)**2;
-  let qs=1,warn=null;
+  const blur=(lq/n)-(ls/n)**2; let qs=1,warn=null;
   if(lum<CONFIG.LUM_MIN){qs-=0.5;warn='A bit dark — turn on the flashlight for a better read';}
   else if(blur<CONFIG.BLUR_MIN){qs-=0.3;warn='Slightly blurry — hold steady and rescan';}
   return {qs:Math.max(0,qs),warn};
 }
 
 async function scan(){
-  if(!model) return;
-  $('scanBtn').disabled=true; $('scanBtn').textContent='Analyzing…';
+  if(!configured()){ openSettings(); return; }
+  $('scanBtn').disabled=true; $('scanBtn').textContent='Analyzing…'; lastErr='';
   await new Promise(r=>setTimeout(r,30));
   grabFrame();
   const {qs,warn}=quality(); lastQuality=qs;
-
-  const t0=performance.now();
-  const preds=await model.detect(cap, CONFIG.MAX_BOXES, CONFIG.MIN_SCORE);
-  lastMs=Math.round(performance.now()-t0);
-
-  const dets=preds.map(p=>({ x0:p.bbox[0]/cap.width, y0:p.bbox[1]/cap.height,
-    x1:(p.bbox[0]+p.bbox[2])/cap.width, y1:(p.bbox[1]+p.bbox[3])/cap.height, s:p.score }));
-  const {frac,kept}=occFraction(dets);
-  lastCount=kept.length;
-  lastVoid=Math.max(0,Math.min(100,(1-frac)*100));
-
-  showResult(kept); paintHUD(); dbg(`found ${preds.length}`);
-  if(warn) showToast(warn);
-  mode='result';
-  $('previewRow').classList.add('hidden'); $('resultRow').classList.remove('hidden');
-  $('caption').textContent='';
+  try{
+    const t0=performance.now();
+    const dets=await detectViaAPI();
+    lastMs=Math.round(performance.now()-t0);
+    const {frac,kept}=occFraction(dets);
+    lastCount=kept.length; lastVoid=Math.max(0,Math.min(100,(1-frac)*100));
+    showResult(kept); paintHUD(); dbg(`found ${dets.length}`);
+    if(warn) showToast(warn);
+    mode='result'; $('previewRow').classList.add('hidden'); $('resultRow').classList.remove('hidden'); $('caption').textContent='';
+  }catch(e){
+    lastErr=String(e.message||e).slice(0,40); dbg('');
+    showToast('Detection failed ('+lastErr+'). Check model ID / key in ⚙.');
+  }
   $('scanBtn').disabled=false; $('scanBtn').textContent='Scan';
 }
 
@@ -230,7 +255,6 @@ function showResult(kept){
   for(const d of kept) rctx.strokeRect(d.x0*W,d.y0*H,(d.x1-d.x0)*W,(d.y1-d.y0)*H);
   overlay.style.display='none'; result.style.display='block';
 }
-
 function paintHUD(){
   $('itemCount').textContent=lastCount;
   const v=Math.round(lastVoid); $('voidVal').textContent=v+'%';
@@ -238,7 +262,6 @@ function paintHUD(){
   else if(v>=CONFIG.REDLINE_VOID){band='LOW';col='var(--warn)';} else{band='FULL';col='var(--mint)';}
   $('voidVal').style.color=col; $('bandVal').textContent=band; $('bandVal').style.color=col;
 }
-
 function backToPreview(){
   mode='preview'; result.style.display='none'; overlay.style.display='block';
   $('resultRow').classList.add('hidden'); $('previewRow').classList.remove('hidden');
@@ -249,7 +272,14 @@ function backToPreview(){
 
 let toastTimer=null;
 function showToast(msg){const t=$('toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* settings */
+function openSettings(){ const c=getCfg(); $('setModel').value=c.model; $('setKey').value=c.key; $('setSheet').classList.remove('hidden'); }
+$('setBtn').onclick=openSettings;
+$('setCancel').onclick=()=>$('setSheet').classList.add('hidden');
+$('setSave').onclick=()=>{ setCfg($('setModel').value.trim(), $('setKey').value.trim());
+  $('setSheet').classList.add('hidden'); lastErr=''; dbg(configured()?'ready':'needs setup'); };
 
 $('scanBtn').onclick=scan;
 $('againBtn').onclick=backToPreview;
@@ -276,7 +306,6 @@ function getGeo(){return new Promise(res=>{ if(!navigator.geolocation)return res
 $('nextBtn').onclick=()=>{$('doneSheet').classList.add('hidden');$('submitBtn').disabled=false;backToPreview();};
 
 function fail(t,m){$('errTitle').textContent=t;$('errMsg').textContent=m;$('errSheet').classList.remove('hidden');}
-
 start();
 </script>
 </body>
